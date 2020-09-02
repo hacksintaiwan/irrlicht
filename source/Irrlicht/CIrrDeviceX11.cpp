@@ -6,6 +6,7 @@
 
 #ifdef _IRR_COMPILE_WITH_X11_DEVICE_
 
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/utsname.h>
@@ -23,6 +24,10 @@
 #include "IGUISpriteBank.h"
 #include <X11/XKBlib.h>
 #include <X11/Xatom.h>
+
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/Xos.h>
 
 #ifdef _IRR_LINUX_XCURSOR_
 #include <X11/Xcursor/Xcursor.h>
@@ -331,6 +336,9 @@ bool CIrrDeviceX11::createWindow()
 	XSetErrorHandler(IrrPrintXError);
 #endif
 
+    setlocale(LC_CTYPE, "");
+    setlocale(LC_ALL, "");
+    XSetLocaleModifiers("");
 	display = XOpenDisplay(0);
 	if (!display)
 	{
@@ -665,6 +673,25 @@ bool CIrrDeviceX11::createWindow()
 		ExternalWindow = true;
 	}
 
+    xim = XOpenIM(display, NULL, NULL, NULL);
+    if (!xim) {
+        printf("cannot open xim\n");
+    }
+    ic = XCreateIC(xim,
+            /* the following are in attr, val format, terminated by NULL */
+            XNInputStyle, XIMPreeditNothing | XIMStatusNothing,
+            XNClientWindow, window,
+            NULL);
+    if (!ic) {
+        printf("cannot open xic\n");
+    }
+    // XSelectInput(display, window, KeyPressMask);
+    XSetICFocus(ic);
+
+    buff_size = 16;
+    buff = (char *)malloc(buff_size);
+    // end patch
+
 	WindowMinimized=false;
 	// Currently broken in X, see Bug ID 2795321
 	// XkbSetDetectableAutoRepeat(display, True, &AutorepeatSupport);
@@ -828,10 +855,17 @@ bool CIrrDeviceX11::run()
 		SEvent irrevent;
 		irrevent.MouseInput.ButtonStates = 0xffffffff;
 
+
+
 		while (XPending(display) > 0 && !Close)
 		{
 			XEvent event;
 			XNextEvent(display, &event);
+
+            if (XFilterEvent(&event, None)) {
+                printf("xfilterevent\n");
+                continue;
+            }
 
 			switch (event.type)
 			{
@@ -1009,6 +1043,33 @@ bool CIrrDeviceX11::run()
 					event.xkey.state = 0; // ignore shift-ctrl states for figuring out the key
 					XLookupString(&event.xkey, buf, sizeof(buf), &mp.X11Key, NULL);
 					const s32 idx = KeyMap.binary_search(mp);
+
+                    // start patch
+                    KeySym ksym;
+                    Status status;
+                    size_t c = Xutf8LookupString(ic, &event.xkey,
+                            buff, buff_size - 1,
+                            &ksym, &status);
+                    printf("buf size: %lu, buf: %s\n", c + 1, buff);
+                    if (status == XBufferOverflow)
+                    {
+                        printf("reallocate to the size of: %lu\n", c + 1);
+                        buff = (char*)realloc(buff, c + 1);
+                        c = Xutf8LookupString(ic, &event.xkey,
+                                buff, c,
+                                &ksym, &status);
+                    }
+                    if (c)
+                    {
+                        buff[c] = 0;
+                        printf("delievered string: %s\n", buff);
+                        wchar_t* wc = new wchar_t[c];
+                        mbstowcs(wc, buff, c);
+                        irrevent.KeyInput.Char = *wc;
+                        printf("char:%ls\n", wc);
+                    }
+                    // end patch
+
 					if (idx != -1)
 					{
 						irrevent.KeyInput.Key = (EKEY_CODE)KeyMap[idx].Win32Key;

@@ -338,6 +338,11 @@ namespace irr
 		XSizeHints* StdHints;
 		XImage* SoftwareImage;
 		mutable core::stringc Clipboard;
+        XIM xim;
+        XIC ic;
+        char* buff;
+        size_t buff_size;
+
 		#ifdef _IRR_LINUX_X11_VIDMODE_
 		XF86VidModeModeInfo oldVideoMode;
 		#endif
