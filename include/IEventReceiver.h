@@ -316,7 +316,7 @@ struct SEvent
 	struct SKeyInput
 	{
 		//! Character corresponding to the key (0, if not a character)
-		wchar_t Char;
+		wchar_t* Char;
 
 		//! Key which has been pressed or released
 		EKEY_CODE Key;

@@ -271,7 +271,7 @@ bool CGUIListBox::OnEvent(const SEvent& event)
 					Selected = 0;
 				if (Selected >= (s32)Items.size())
 					Selected = Items.size() - 1;	// will set Selected to -1 for empty listboxes which is correct
-				
+
 
 				recalculateScrollPos();
 
@@ -311,16 +311,16 @@ bool CGUIListBox::OnEvent(const SEvent& event)
 				if (now - LastKeyTime < 500)
 				{
 					// add to key buffer if it isn't a key repeat
-					if (!(KeyBuffer.size() == 1 && KeyBuffer[0] == event.KeyInput.Char))
+					if (!(KeyBuffer.size() == 1 && KeyBuffer[0] == (wchar_t)*event.KeyInput.Char))
 					{
 						KeyBuffer += L" ";
-						KeyBuffer[KeyBuffer.size()-1] = event.KeyInput.Char;
+						KeyBuffer[KeyBuffer.size()-1] = (wchar_t)*event.KeyInput.Char;
 					}
 				}
 				else
 				{
 					KeyBuffer = L" ";
-					KeyBuffer[0] = event.KeyInput.Char;
+					KeyBuffer[0] = (wchar_t)*event.KeyInput.Char;
 				}
 				LastKeyTime = now;
 

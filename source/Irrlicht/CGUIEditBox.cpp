@@ -267,7 +267,8 @@ bool CGUIEditBox::processKey(const SEvent& event)
 	if (event.KeyInput.Control)
 	{
 		// german backlash '\' entered with control + '?'
-		if ( event.KeyInput.Char == '\\' )
+		wchar_t firstChar = *event.KeyInput.Char;
+		if ( firstChar == '\\' )
 		{
 			inputChar(event.KeyInput.Char);
 			return true;
@@ -470,7 +471,7 @@ bool CGUIEditBox::processKey(const SEvent& event)
 	case KEY_RETURN:
 		if (MultiLine)
 		{
-			inputChar(L'\n');
+			inputChar((wchar_t*)L'\n');
 		}
 		else
 		{
@@ -1297,7 +1298,7 @@ s32 CGUIEditBox::getLineFromPos(s32 pos)
 }
 
 
-void CGUIEditBox::inputChar(wchar_t c)
+void CGUIEditBox::inputChar(wchar_t* c)
 {
 	if (!isEnabled())
 		return;
@@ -1322,7 +1323,7 @@ void CGUIEditBox::inputChar(wchar_t c)
 			}
 			else
 			{
-				// add new character
+                // add new character
 				s = Text.subString(0, CursorPos);
 				s.append(c);
 				s.append( Text.subString(CursorPos, Text.size()-CursorPos) );

@@ -863,7 +863,6 @@ bool CIrrDeviceX11::run()
 			XNextEvent(display, &event);
 
             if (XFilterEvent(&event, None)) {
-                printf("xfilterevent\n");
                 continue;
             }
 
@@ -1035,8 +1034,7 @@ bool CIrrDeviceX11::run()
 
 					irrevent.EventType = irr::EET_KEY_INPUT_EVENT;
 					irrevent.KeyInput.PressedDown = (event.type == KeyPress);
-//					mbtowc(&irrevent.KeyInput.Char, buf, sizeof(buf));
-					irrevent.KeyInput.Char = ((wchar_t*)(buf))[0];
+					irrevent.KeyInput.Char = &((wchar_t*)(buf))[0];
 					irrevent.KeyInput.Control = (event.xkey.state & ControlMask) != 0;
 					irrevent.KeyInput.Shift = (event.xkey.state & ShiftMask) != 0;
 
@@ -1050,10 +1048,8 @@ bool CIrrDeviceX11::run()
                     size_t c = Xutf8LookupString(ic, &event.xkey,
                             buff, buff_size - 1,
                             &ksym, &status);
-                    printf("buf size: %lu, buf: %s\n", c + 1, buff);
                     if (status == XBufferOverflow)
                     {
-                        printf("reallocate to the size of: %lu\n", c + 1);
                         buff = (char*)realloc(buff, c + 1);
                         c = Xutf8LookupString(ic, &event.xkey,
                                 buff, c,
@@ -1062,11 +1058,9 @@ bool CIrrDeviceX11::run()
                     if (c)
                     {
                         buff[c] = 0;
-                        printf("delievered string: %s\n", buff);
                         wchar_t* wc = new wchar_t[c];
                         mbstowcs(wc, buff, c);
-                        irrevent.KeyInput.Char = *wc;
-                        printf("char:%ls\n", wc);
+                        irrevent.KeyInput.Char = wc;
                     }
                     // end patch
 
