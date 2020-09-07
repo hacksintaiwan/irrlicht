@@ -752,94 +752,132 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
 	case WM_PAINT:
-		{
-			PAINTSTRUCT ps;
-			BeginPaint(hWnd, &ps);
-			EndPaint(hWnd, &ps);
-		}
-		return 0;
+	{
+		PAINTSTRUCT ps;
+		BeginPaint(hWnd, &ps);
+		EndPaint(hWnd, &ps);
+	}
+	return 0;
 
 	case WM_ERASEBKGND:
 		return 0;
 
+
+	case WM_IME_CHAR:
+	{
+		event.EventType = irr::EET_KEY_INPUT_EVENT;
+		event.KeyInput.PressedDown = true;
+		event.KeyInput.Key = irr::KEY_OEM_CLEAR;
+		event.KeyInput.Shift = 0;
+		event.KeyInput.Control = 0;
+
+		char p1[2];
+
+		p1[0] = (char)((wParam & 0xff00) >> 8);
+		p1[1] = (char)(wParam & 0xff);
+
+		wchar_t Char[3] = { L"\0\0" };
+		if (p1[0] == 0)
+		{
+			Char[0] = (wchar_t)wParam;
+		}
+		else
+			MultiByteToWideChar(950, MB_COMPOSITE, p1, 2, (LPWSTR)Char, 1);
+
+		event.KeyInput.Char = Char;
+
+		dev = getDeviceFromHWnd(hWnd);
+		if (dev)
+		{
+			dev->postEventFromUser(event);
+		}
+		return 0;
+	}
+		// break;
 	case WM_SYSKEYDOWN:
 	case WM_SYSKEYUP:
 	case WM_KEYDOWN:
 	case WM_KEYUP:
+	{
+		BYTE allKeys[256];
+
+		event.EventType = irr::EET_KEY_INPUT_EVENT;
+		event.KeyInput.Key = (irr::EKEY_CODE)wParam;
+		event.KeyInput.PressedDown = (message == WM_KEYDOWN || message == WM_SYSKEYDOWN);
+
+		const UINT MY_MAPVK_VSC_TO_VK_EX = 3; // MAPVK_VSC_TO_VK_EX should be in SDK according to MSDN, but isn't in mine.
+		if (event.KeyInput.Key == irr::KEY_SHIFT)
 		{
-			BYTE allKeys[256];
-
-			event.EventType = irr::EET_KEY_INPUT_EVENT;
-			event.KeyInput.Key = (irr::EKEY_CODE)wParam;
-			event.KeyInput.PressedDown = (message==WM_KEYDOWN || message == WM_SYSKEYDOWN);
-
-			const UINT MY_MAPVK_VSC_TO_VK_EX = 3; // MAPVK_VSC_TO_VK_EX should be in SDK according to MSDN, but isn't in mine.
-			if ( event.KeyInput.Key == irr::KEY_SHIFT )
-			{
-				// this will fail on systems before windows NT/2000/XP, not sure _what_ will return there instead.
-				event.KeyInput.Key = (irr::EKEY_CODE)MapVirtualKey( ((lParam>>16) & 255), MY_MAPVK_VSC_TO_VK_EX );
-			}
-			if ( event.KeyInput.Key == irr::KEY_CONTROL )
-			{
-				event.KeyInput.Key = (irr::EKEY_CODE)MapVirtualKey( ((lParam>>16) & 255), MY_MAPVK_VSC_TO_VK_EX );
-				// some keyboards will just return LEFT for both - left and right keys. So also check extend bit.
-				if (lParam & 0x1000000)
-					event.KeyInput.Key = irr::KEY_RCONTROL;
-			}
-			if ( event.KeyInput.Key == irr::KEY_MENU )
-			{
-				event.KeyInput.Key = (irr::EKEY_CODE)MapVirtualKey( ((lParam>>16) & 255), MY_MAPVK_VSC_TO_VK_EX );
-				if (lParam & 0x1000000)
-					event.KeyInput.Key = irr::KEY_RMENU;
-			}
-
-			GetKeyboardState(allKeys);
-
-			event.KeyInput.Shift = ((allKeys[VK_SHIFT] & 0x80)!=0);
-			event.KeyInput.Control = ((allKeys[VK_CONTROL] & 0x80)!=0);
-
-			// Handle unicode and deadkeys in a way that works since Windows 95 and nt4.0
-			// Using ToUnicode instead would be shorter, but would to my knowledge not run on 95 and 98.
-			WORD keyChars[2];
-			UINT scanCode = HIWORD(lParam);
-			int conversionResult = ToAsciiEx(wParam,scanCode,allKeys,keyChars,0,KEYBOARD_INPUT_HKL);
-			if (conversionResult == 1)
-			{
-				WORD unicodeChar;
-				MultiByteToWideChar(
-						KEYBOARD_INPUT_CODEPAGE,
-						MB_PRECOMPOSED, // default
-						(LPCSTR)keyChars,
-						sizeof(keyChars),
-						(WCHAR*)&unicodeChar,
-						1 );
-				event.KeyInput.Char = unicodeChar;
-			}
-			else
-				event.KeyInput.Char = 0;
-
-			// allow composing characters like '@' with Alt Gr on non-US keyboards
-			if ((allKeys[VK_MENU] & 0x80) != 0)
-				event.KeyInput.Control = 0;
-
-			dev = getDeviceFromHWnd(hWnd);
-			if (dev)
-				dev->postEventFromUser(event);
-
-			if (message == WM_SYSKEYDOWN || message == WM_SYSKEYUP)
-				return DefWindowProc(hWnd, message, wParam, lParam);
-			else
-				return 0;
+			// this will fail on systems before windows NT/2000/XP, not sure _what_ will return there instead.
+			event.KeyInput.Key = (irr::EKEY_CODE)MapVirtualKey(((lParam >> 16) & 255), MY_MAPVK_VSC_TO_VK_EX);
 		}
+		if (event.KeyInput.Key == irr::KEY_CONTROL)
+		{
+			event.KeyInput.Key = (irr::EKEY_CODE)MapVirtualKey(((lParam >> 16) & 255), MY_MAPVK_VSC_TO_VK_EX);
+			// some keyboards will just return LEFT for both - left and right keys. So also check extend bit.
+			if (lParam & 0x1000000)
+				event.KeyInput.Key = irr::KEY_RCONTROL;
+		}
+		if (event.KeyInput.Key == irr::KEY_MENU)
+		{
+			event.KeyInput.Key = (irr::EKEY_CODE)MapVirtualKey(((lParam >> 16) & 255), MY_MAPVK_VSC_TO_VK_EX);
+			if (lParam & 0x1000000)
+				event.KeyInput.Key = irr::KEY_RMENU;
+		}
+
+		GetKeyboardState(allKeys);
+
+		event.KeyInput.Shift = ((allKeys[VK_SHIFT] & 0x80) != 0);
+		event.KeyInput.Control = ((allKeys[VK_CONTROL] & 0x80) != 0);
+
+		// Handle unicode and deadkeys in a way that works since Windows 95 and nt4.0
+		// Using ToUnicode instead would be shorter, but would to my knowledge not run on 95 and 98.
+		WORD keyChars[2];
+		UINT scanCode = HIWORD(lParam);
+		int conversionResult = ToAsciiEx(wParam, scanCode, allKeys, keyChars, 0, KEYBOARD_INPUT_HKL);
+		if (conversionResult == 1)
+		{
+			WORD unicodeChar;
+			MultiByteToWideChar(
+				KEYBOARD_INPUT_CODEPAGE,
+				MB_PRECOMPOSED, // default
+				(LPCSTR)keyChars,
+				sizeof(keyChars),
+				(WCHAR*)&unicodeChar,
+				1);
+			wchar_t Char[3] = { unicodeChar, L"\0" };
+			event.KeyInput.Char = Char;
+		}
+		else 
+		{
+			wchar_t Char[1] = { 0 };
+			event.KeyInput.Char = Char;
+		}
+		
+
+		// allow composing characters like '@' with Alt Gr on non-US keyboards
+		if ((allKeys[VK_MENU] & 0x80) != 0)
+			event.KeyInput.Control = 0;
+
+
+		dev = getDeviceFromHWnd(hWnd);
+		if (dev)
+			dev->postEventFromUser(event);
+
+		if (message == WM_SYSKEYDOWN || message == WM_SYSKEYUP)
+			return DefWindowProc(hWnd, message, wParam, lParam);
+		else
+			return 0;
+	}
 
 	case WM_SIZE:
-		{
-			// resize
-			dev = getDeviceFromHWnd(hWnd);
-			if (dev)
-				dev->OnResized();
-		}
-		return 0;
+	{
+		// resize
+		dev = getDeviceFromHWnd(hWnd);
+		if (dev)
+			dev->OnResized();
+	}
+	return 0;
 
 	case WM_DESTROY:
 		PostQuitMessage(0);
@@ -860,10 +898,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		dev = getDeviceFromHWnd(hWnd);
 		if (dev && dev->isFullscreen())
 		{
-			if ((wParam&0xFF)==WA_INACTIVE)
+			if ((wParam & 0xFF) == WA_INACTIVE)
 			{
 				// If losing focus we minimize the app to show other one
-				ShowWindow(hWnd,SW_MINIMIZE);
+				ShowWindow(hWnd, SW_MINIMIZE);
 				// and switch back to default resolution
 				dev->switchToFullScreen(true);
 			}
@@ -894,16 +932,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		dev = getDeviceFromHWnd(hWnd);
 		if (dev)
 		{
-			dev->getCursorControl()->setActiveIcon( dev->getCursorControl()->getActiveIcon() );
-			dev->getCursorControl()->setVisible( dev->getCursorControl()->isVisible() );
+			dev->getCursorControl()->setActiveIcon(dev->getCursorControl()->getActiveIcon());
+			dev->getCursorControl()->setVisible(dev->getCursorControl()->isVisible());
 		}
 		break;
 
 	case WM_INPUTLANGCHANGE:
 		// get the new codepage used for keyboard input
 		KEYBOARD_INPUT_HKL = GetKeyboardLayout(0);
-		KEYBOARD_INPUT_CODEPAGE = LocaleIdToCodepage( LOWORD(KEYBOARD_INPUT_HKL) );
+		KEYBOARD_INPUT_CODEPAGE = LocaleIdToCodepage(LOWORD(KEYBOARD_INPUT_HKL));
 		return 0;
+
 	}
 	return DefWindowProc(hWnd, message, wParam, lParam);
 }
@@ -1799,6 +1838,7 @@ void CIrrDeviceWin32::handleSystemMessages()
 	{
 		// No message translation because we don't use WM_CHAR and it would conflict with our
 		// deadkey handling.
+		TranslateMessage(&msg);
 
 		if (ExternalWindow && msg.hwnd == HWnd)
 			WndProc(HWnd, msg.message, msg.wParam, msg.lParam);

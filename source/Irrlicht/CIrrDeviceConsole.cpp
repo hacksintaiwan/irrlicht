@@ -231,7 +231,7 @@ bool CIrrDeviceConsole::run()
 			e.KeyInput.Control     = (in.Event.KeyEvent.dwControlKeyState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) != 0;
 			e.KeyInput.Shift       = (in.Event.KeyEvent.dwControlKeyState & SHIFT_PRESSED) != 0;
 			e.KeyInput.Key         = EKEY_CODE(in.Event.KeyEvent.wVirtualKeyCode);
-			e.KeyInput.Char        = in.Event.KeyEvent.uChar.UnicodeChar;
+			e.KeyInput.Char        = (wchar_t*)in.Event.KeyEvent.uChar.UnicodeChar;
 			postEventFromUser(e);
 			break;
 		}
